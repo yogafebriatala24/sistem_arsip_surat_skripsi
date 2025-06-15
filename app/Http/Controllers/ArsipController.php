@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Arsip;
 use App\Models\Kategori;
 use Illuminate\Http\RedirectResponse;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
@@ -205,5 +206,32 @@ class ArsipController extends Controller
 
         // redirect ke halaman index dan tampilkan pesan berhasil hapus data
         return redirect()->route('arsip.index')->with(['success' => 'Data arsip surat berhasil dihapus.']);
+    }
+
+    /**
+     * Download the specified resource.
+     */
+    public function download($id)
+    {
+        // dapatkan data berdasarakan "id"
+        $arsip = Arsip::findOrFail($id);
+        $path = storage_path('app/public/dokumen/' . $arsip->dokumen_elektronik);
+
+        // cek apakah file ada
+        if (!file_exists($path)) {
+            // return redirect()->back()->withErrors(['file' => 'File tidak ditemukan.']);
+            return redirect()->route('arsip.show', $arsip->id)->with('error', 'File tidak ditemukan.');
+        }
+
+        // validasi hash: ngitung ulang hash file
+        $currentHash = hash_file('sha256', $path);
+
+        // validasi hash: bandingin hasil hitung ulang dengan stored hash di db
+        if ($currentHash !== $arsip->file_hash) {
+            return redirect()->route('arsip.show', $arsip->id)->with('error', 'File rusak atau telah dimodifikasi diluar sistem. Gagal mengunduh.');
+        }
+
+        // download file
+        return response()->download($path, $arsip->dokumen_elektronik);
     }
 }

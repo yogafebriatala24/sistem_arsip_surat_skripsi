@@ -34,6 +34,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/arsip/ubah/{id}', [ArsipController::class, 'edit'])->name('arsip.edit');
     Route::put('/arsip/{id}', [ArsipController::class, 'update'])->name('arsip.update');
     Route::delete('/arsip/{id}', [ArsipController::class, 'destroy'])->name('arsip.destroy');
+    Route::get('/arsip/download/{id}', [ArsipController::class, 'download'])->name('arsip.download');
     
     Route::get('/laporan', [LaporanController::class, 'index'])->name('laporan.index');
     Route::get('/laporan/filter', [LaporanController::class, 'filter'])->name('laporan.filter');

@@ -1,6 +1,9 @@
 <x-app-layout>
     <x-slot:title>Arsip Surat</x-slot:title>
     <x-slot:breadcrumb>Detail</x-slot:breadcrumb>
+    @if (session('error'))
+        <x-alert>{{ session('error') }}</x-alert>
+    @endif
 
     <div class="card">
         <div class="card-body">
@@ -36,7 +39,13 @@
             </div>
             {{-- tampilkan dokumen elektronik --}}
             <div class="pt-2">
-                <embed type="application/pdf" width="100%" height="700px" src="{{ asset('/storage/dokumen/'.$arsip->dokumen_elektronik) }}" class="border rounded">
+                <embed type="application/pdf" width="100%" height="700px"
+                    src="{{ asset('/storage/dokumen/' . $arsip->dokumen_elektronik) }}#toolbar=0" class="border rounded">
+                <div class="mt-4">
+                    <a href="{{ route('arsip.download', $arsip->id) }}" class="btn btn-primary">
+                        <i class="ti ti-download me-1"></i> Download Dokumen
+                    </a>
+                </div>
             </div>
 
             {{-- action buttons --}}
