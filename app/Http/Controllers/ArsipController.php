@@ -9,6 +9,8 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
+use App\Services\FileEncryptionService;
+
 
 class ArsipController extends Controller
 {
@@ -54,54 +56,45 @@ class ArsipController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
-        // validasi form
         $request->validate([
             'nama_surat'         => 'required',
             'nomor_surat'        => 'required|unique:arsip',
             'tanggal_surat'      => 'required|date',
             'kategori'           => 'required|exists:kategori,id',
             'dokumen_elektronik' => 'required|file|mimes:pdf|max:5120'
-        ], [
-            'nama_surat.required'         => 'Nama surat tidak boleh kosong.',
-            'nomor_surat.required'        => 'Nomor surat tidak boleh kosong.',
-            'nomor_surat.unique'          => 'Nomor surat sudah ada.',
-            'tanggal_surat.required'      => 'Tanggal surat tidak boleh kosong.',
-            'tanggal_surat.date'          => 'Tanggal surat harus berupa tanggal yang valid.',
-            'kategori.required'           => 'Kategori surat tidak boleh kosong.',
-            'kategori.exists'             => 'Kategori surat yang dipilih tidak valid.',
-            'dokumen_elektronik.required' => 'Dokumen elektronik tidak boleh kosong.',
-            'dokumen_elektronik.file'     => 'Dokumen elektronik harus berupa file.',
-            'dokumen_elektronik.mimes'    => 'Dokumen elektronik harus berupa file dengan jenis: pdf.',
-            'dokumen_elektronik.max'      => 'Dokumen elektronik tidak boleh lebih besar dari 5 MB.'
         ]);
 
-        // upload file
         $file = $request->file('dokumen_elektronik');
+        $plainContent = file_get_contents($file);
         $fileName = $file->hashName();
-        $filePath = $file->storeAs('public/dokumen', $file->hashName());
 
-        // hash file
-        $absolutePath = Storage::path($filePath);
-        $fileHash = hash_file('sha256', $absolutePath);
+        // Hash untuk deduplikasi
+        $fileHash = hash('sha256', $plainContent);
 
-        // cek duplikasi file yang diupload
         if (Arsip::where('file_hash', $fileHash)->exists()) {
             return redirect()->back()->withErrors(['dokumen_elektronik' => 'File ini sudah pernah diunggah.']);
         }
 
-        // simpan data
+        // Enkripsi konten
+        $encryptionService = new FileEncryptionService();
+        $encryptedContent = $encryptionService->encrypt($plainContent);
+
+        // Simpan ke storage terenkripsi
+        Storage::disk('private')->put('dokumen/' . $fileName, $encryptedContent);
+
+        // Simpan metadata ke database
         Arsip::create([
             'nama_surat'         => $request->nama_surat,
             'nomor_surat'        => $request->nomor_surat,
             'tanggal_surat'      => $request->tanggal_surat,
             'kategori_id'        => $request->kategori,
-            'dokumen_elektronik' => $file->hashName(),
-            'file_hash'         => $fileHash
+            'dokumen_elektronik' => $fileName,
+            'file_hash'          => $fileHash
         ]);
 
-        // redirect ke halaman index dan tampilkan pesan berhasil simpan data
         return redirect()->route('arsip.index')->with(['success' => 'Data arsip surat berhasil disimpan.']);
     }
+
 
     /**
      * Display the specified resource.
@@ -213,24 +206,63 @@ class ArsipController extends Controller
      */
     public function download($id)
     {
-        // dapatkan data berdasarakan "id"
         $arsip = Arsip::findOrFail($id);
-        $path = storage_path('app/public/dokumen/' . $arsip->dokumen_elektronik);
+        $relativePath = 'dokumen/' . $arsip->dokumen_elektronik;
 
-        // cek apakah file ada
-        if (!file_exists($path)) {
+        if (!Storage::disk('private')->exists($relativePath)) {
             return redirect()->route('arsip.show', $arsip->id)->with('error', 'File tidak ditemukan.');
         }
 
-        // validasi hash: ngitung ulang hash file
-        $currentHash = hash_file('sha256', $path);
+        $encryptedContent = Storage::disk('private')->get($relativePath);
 
-        // validasi hash: bandingin hasil hitung ulang dengan stored hash di db
-        if ($currentHash !== $arsip->file_hash) {
-            return redirect()->route('arsip.show', $arsip->id)->with('error', 'File rusak atau telah dimodifikasi diluar sistem. Gagal mengunduh.');
+        $decryptionService = new FileEncryptionService();
+        $decryptedContent = $decryptionService->decrypt($encryptedContent);
+
+        if ($decryptedContent === false) {
+            return redirect()->route('arsip.show', $arsip->id)->with('error', 'File tidak dapat didekripsi. Ada potensi file rusak atau tidak valid.');
         }
 
-        // download file
-        return response()->download($path, $arsip->dokumen_elektronik);
+        // Validasi integritas file
+        $currentHash = hash('sha256', $decryptedContent);
+        if ($currentHash !== $arsip->file_hash) {
+            return redirect()->route('arsip.show', $arsip->id)->with('error', 'File rusak atau telah dimodifikasi di luar sistem. Gagal mengunduh.');
+        }
+
+        // Kirim ke browser sebagai download
+        return response($decryptedContent)
+            ->header('Content-Type', 'application/pdf')
+            ->header('Content-Disposition', 'attachment; filename="' . $arsip->nama_surat . '.pdf"');
     }
+
+    /**
+     * Preview the specified resource.
+     */
+    public function preview($id)
+    {
+        $arsip = Arsip::findOrFail($id);
+        $relativePath = 'dokumen/' . $arsip->dokumen_elektronik;
+
+        if (!Storage::disk('private')->exists($relativePath)) {
+            abort(404, 'File tidak ditemukan.');
+        }
+
+        $encryptedContent = Storage::disk('private')->get($relativePath);
+
+        $decryptionService = new FileEncryptionService();
+        $decryptedContent = $decryptionService->decrypt($encryptedContent);
+
+        if ($decryptedContent === false) {
+            abort(403, 'File tidak dapat didekripsi atau rusak.');
+        }
+
+        // Validasi hash
+        $currentHash = hash('sha256', $decryptedContent);
+        if ($currentHash !== $arsip->file_hash) {
+            abort(403, 'File rusak atau tidak valid.');
+        }
+
+        return response($decryptedContent)
+            ->header('Content-Type', 'application/pdf');
+    }
+
 }

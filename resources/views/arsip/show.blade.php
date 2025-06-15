@@ -40,7 +40,7 @@
             {{-- tampilkan dokumen elektronik --}}
             <div class="pt-2">
                 <embed type="application/pdf" width="100%" height="700px"
-                    src="{{ asset('/storage/dokumen/' . $arsip->dokumen_elektronik) }}#toolbar=0" class="border rounded">
+                    src="{{ route('arsip.preview', $arsip->id) }}#toolbar=0" class="border rounded">
                 <div class="mt-4">
                     <a href="{{ route('arsip.download', $arsip->id) }}" class="btn btn-primary">
                         <i class="ti ti-download me-1"></i> Download Dokumen
