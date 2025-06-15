@@ -1,6 +1,6 @@
 <div class="logo-header" data-background-color="white">
     {{-- Logo --}}
-    <a href="https://shopee.co.id/codenull" class="logo">
+    <a href="#" class="logo">
         <img src="{{ asset('images/logo.png') }}" alt="navbar brand" class="navbar-brand me-3" height="30">
         <span class="fw-bold">ARSIP SURAT</span>
     </a>
