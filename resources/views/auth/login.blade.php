@@ -78,12 +78,7 @@
                             <button type="submit" class="btn btn-primary w-100 mt-3 mb-5">LOGIN</button>
 
                             {{-- copyright --}}
-                            <div class="text-center mb-2">
-                                &copy; <span id="year"></span> - 
-                                <a href="https://shopee.co.id/codenull" target="_blank" class="text-brand text-decoration-none fw-semibold">
-                                    Code Null
-                                </a>.
-                            </div>
+                          
                             
                             <script>
                                 // Set tahun otomatis
