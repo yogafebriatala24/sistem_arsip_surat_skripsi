@@ -219,7 +219,6 @@ class ArsipController extends Controller
 
         // cek apakah file ada
         if (!file_exists($path)) {
-            // return redirect()->back()->withErrors(['file' => 'File tidak ditemukan.']);
             return redirect()->route('arsip.show', $arsip->id)->with('error', 'File tidak ditemukan.');
         }
 
