@@ -28,6 +28,7 @@ class Arsip extends Model
         'tanggal_surat',
         'kategori_id',
         'dokumen_elektronik',
+        'file_hash',
     ];
 
     /**

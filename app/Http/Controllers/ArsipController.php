@@ -76,7 +76,17 @@ class ArsipController extends Controller
 
         // upload file
         $file = $request->file('dokumen_elektronik');
-        $file->storeAs('public/dokumen', $file->hashName());
+        $fileName = $file->hashName();
+        $filePath = $file->storeAs('public/dokumen', $file->hashName());
+
+        // hash file
+        $absolutePath = Storage::path($filePath);
+        $fileHash = hash_file('sha256', $absolutePath);
+
+        // cek duplikasi file yang diupload
+        if (Arsip::where('file_hash', $fileHash)->exists()) {
+            return redirect()->back()->withErrors(['dokumen_elektronik' => 'File ini sudah pernah diunggah.']);
+        }
 
         // simpan data
         Arsip::create([
@@ -84,7 +94,8 @@ class ArsipController extends Controller
             'nomor_surat'        => $request->nomor_surat,
             'tanggal_surat'      => $request->tanggal_surat,
             'kategori_id'        => $request->kategori,
-            'dokumen_elektronik' => $file->hashName()
+            'dokumen_elektronik' => $file->hashName(),
+            'file_hash'         => $fileHash
         ]);
 
         // redirect ke halaman index dan tampilkan pesan berhasil simpan data
