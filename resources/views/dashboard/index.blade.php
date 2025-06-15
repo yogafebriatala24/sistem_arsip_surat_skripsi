@@ -10,7 +10,7 @@
                 </div>
                 <div class="col-lg-9 col-xxl-10">
                     <h5 class="text-primary mb-2">
-                        Selamat datang <span class="fw-semibold">{{ auth()->user()->nama_user }}</span> di <span class="fw-semibold">{{ config('app.name') }}</span>!
+                         <span class="fw-semibold">{{ config('app.name') }}</span>
                     </h5>
                     <p class="lead-dashboard mb-0">Aplikasi Pengelolaan Arsip Surat adalah aplikasi berbasis web yang digunakan untuk mengelola penyimpanan arsip surat dalam bentuk dokumen elektronik. Aplikasi arsip memberikan efisiensi dan keamanan penyimpanan arsip surat, serta mempermudah dalam mencari informasi arsip surat.</p>
                 </div>
