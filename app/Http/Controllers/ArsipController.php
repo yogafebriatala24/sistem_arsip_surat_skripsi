@@ -71,6 +71,7 @@ class ArsipController extends Controller
         // Hash untuk deduplikasi
         $fileHash = hash('sha256', $plainContent);
 
+        // Cek apakah file sudah pernah diunggah
         if (Arsip::where('file_hash', $fileHash)->exists()) {
             return redirect()->back()->withErrors(['dokumen_elektronik' => 'File ini sudah pernah diunggah.']);
         }
@@ -206,18 +207,25 @@ class ArsipController extends Controller
      */
     public function download($id)
     {
+        // Dapatkan arsip berdasarkan ID
         $arsip = Arsip::findOrFail($id);
         $relativePath = 'dokumen/' . $arsip->dokumen_elektronik;
 
+        // validasi apakah file ada di storage
         if (!Storage::disk('private')->exists($relativePath)) {
             return redirect()->route('arsip.show', $arsip->id)->with('error', 'File tidak ditemukan.');
         }
 
+        // Ambil konten terenkripsi dari storage
         $encryptedContent = Storage::disk('private')->get($relativePath);
 
+        // Inisialisasi service untuk dekripsi
         $decryptionService = new FileEncryptionService();
+
+        // Dekripsi konten
         $decryptedContent = $decryptionService->decrypt($encryptedContent);
 
+        // Tampilkan pesan error jika dekripsi gagal, karena ada potensi file rusak atau tidak valid
         if ($decryptedContent === false) {
             return redirect()->route('arsip.show', $arsip->id)->with('error', 'File tidak dapat didekripsi. Ada potensi file rusak atau tidak valid.');
         }
@@ -239,18 +247,25 @@ class ArsipController extends Controller
      */
     public function preview($id)
     {
+        // Dapatkan arsip berdasarkan ID
         $arsip = Arsip::findOrFail($id);
         $relativePath = 'dokumen/' . $arsip->dokumen_elektronik;
 
+        // Validasi apakah file ada di storage
         if (!Storage::disk('private')->exists($relativePath)) {
             abort(404, 'File tidak ditemukan.');
         }
 
+        // Ambil konten terenkripsi dari storage
         $encryptedContent = Storage::disk('private')->get($relativePath);
 
+        // Inisialisasi service untuk dekripsi
         $decryptionService = new FileEncryptionService();
+
+        // Dekripsi konten
         $decryptedContent = $decryptionService->decrypt($encryptedContent);
 
+        // Tampilkan pesan error jika dekripsi gagal, karena ada potensi file rusak atau tidak valid
         if ($decryptedContent === false) {
             abort(403, 'File tidak dapat didekripsi atau rusak.');
         }
@@ -261,6 +276,7 @@ class ArsipController extends Controller
             abort(403, 'File rusak atau tidak valid.');
         }
 
+        // Kirim ke browser sebagai preview
         return response($decryptedContent)
             ->header('Content-Type', 'application/pdf');
     }
