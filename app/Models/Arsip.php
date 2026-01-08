@@ -29,6 +29,7 @@ class Arsip extends Model
         'kategori_id',
         'dokumen_elektronik',
         'file_hash',
+        'original_file_hash',
     ];
 
     /**
@@ -37,5 +38,26 @@ class Arsip extends Model
     public function kategori(): BelongsTo
     {
         return $this->belongsTo(Kategori::class);
+    }
+
+    /**
+     * Cek apakah dokumen asli (belum pernah diubah)
+     */
+    public function isOriginal(): bool
+    {
+        // Jika original_file_hash belum diisi, kita gunakan file_hash saat ini sebagai hash asli
+        // Ini untuk menangani dokumen-dokumen lama sebelum kolom original_file_hash ditambahkan
+        $originalHash = $this->original_file_hash ?? $this->file_hash;
+
+        // Dokumen asli jika hash saat ini sama dengan hash asli
+        return $this->file_hash === $originalHash;
+    }
+
+    /**
+     * Cek apakah dokumen telah diubah dari aslinya
+     */
+    public function isModified(): bool
+    {
+        return !$this->isOriginal();
     }
 }

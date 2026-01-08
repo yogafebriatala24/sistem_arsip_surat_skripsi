@@ -90,7 +90,8 @@ class ArsipController extends Controller
             'tanggal_surat'      => $request->tanggal_surat,
             'kategori_id'        => $request->kategori,
             'dokumen_elektronik' => $fileName,
-            'file_hash'          => $fileHash
+            'file_hash'          => $fileHash,
+            'original_file_hash' => $fileHash  // Set original hash saat pembuatan
         ]);
 
         return redirect()->route('arsip.index')->with(['success' => 'Data arsip surat berhasil disimpan.']);
@@ -153,20 +154,38 @@ class ArsipController extends Controller
 
         // jika "dokumen_elektronik" diubah
         if ($request->hasFile('dokumen_elektronik')) {
-            // upload file baru
+            // ambil file baru
             $file = $request->file('dokumen_elektronik');
-            $file->storeAs('public/dokumen', $file->hashName());
+            $plainContent = file_get_contents($file);
+            $fileName = $file->hashName();
 
-            // hapus file lama
-            Storage::delete('public/dokumen/' . $arsip->dokumen_elektronik);
+            // Hash untuk deduplikasi
+            $fileHash = hash('sha256', $plainContent);
 
-            // ubah data
+            // Cek apakah file sudah pernah diunggah (kecuali untuk arsip ini sendiri)
+            if (Arsip::where('file_hash', $fileHash)->where('id', '!=', $id)->exists()) {
+                return redirect()->back()->withErrors(['dokumen_elektronik' => 'File ini sudah pernah diunggah oleh arsip lain.']);
+            }
+
+            // Enkripsi konten
+            $encryptionService = new FileEncryptionService();
+            $encryptedContent = $encryptionService->encrypt($plainContent);
+
+            // Simpan ke storage terenkripsi
+            Storage::disk('private')->put('dokumen/' . $fileName, $encryptedContent);
+
+            // hapus file lama dari storage private
+            Storage::disk('private')->delete('dokumen/' . $arsip->dokumen_elektronik);
+
+            // ubah data - original_file_hash tidak berubah, tetap sebagai hash asli dokumen
             $arsip->update([
                 'nama_surat'         => $request->nama_surat,
                 'nomor_surat'        => $request->nomor_surat,
                 'tanggal_surat'      => $request->tanggal_surat,
                 'kategori_id'        => $request->kategori,
-                'dokumen_elektronik' => $file->hashName()
+                'dokumen_elektronik' => $fileName,
+                'file_hash'          => $fileHash
+                // original_file_hash tetap sama karena ini adalah hash asli dokumen
             ]);
         }
         // jika "dokumen_elektronik" tidak diubah

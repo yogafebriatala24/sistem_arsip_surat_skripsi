@@ -30,10 +30,47 @@
                         <td width="10">:</td>
                         <td>{{ Carbon\Carbon::parse($arsip->tanggal_surat)->translatedFormat('j F Y') }}</td>
                     </tr>
+                    @if($arsip->created_at->timestamp != $arsip->updated_at->timestamp)
+                    <tr>
+                        <td width="150">Tanggal Diubah</td>
+                        <td width="10">:</td>
+                        <td>{{ \Carbon\Carbon::parse($arsip->updated_at)->translatedFormat('j F Y H:i') }}</td>
+                    </tr>
+                    @endif
                     <tr>
                         <td width="150">Kategori</td>
                         <td width="10">:</td>
                         <td>{{ $arsip->kategori->nama }}</td>
+                    </tr>
+                    <tr>
+                        <td width="150">Status</td>
+                        <td width="10">:</td>
+                        <td>
+                            @if($arsip->created_at->timestamp == $arsip->updated_at->timestamp)
+                                <button class="text-capitalize bg-success text-white px-4 py-1 rounded border-0">
+                                    Asli
+                                </button>
+                            @else
+                                <button class="text-capitalize bg-warning text-dark px-4 py-1 rounded border-0">
+                                    Telah Diubah
+                                </button>
+                            @endif
+                        </td>
+                    </tr>
+                    <tr>
+                        <td width="150">Status Keaslian</td>
+                        <td width="10">:</td>
+                        <td>
+                            @if($arsip->isOriginal())
+                                <button class="text-capitalize bg-success text-white px-4 py-1 rounded border-0">
+                                    Asli
+                                </button>
+                            @else
+                                <button class="text-capitalize bg-warning text-dark px-4 py-1 rounded border-0">
+                                    Telah Diubah
+                                </button>
+                            @endif
+                        </td>
                     </tr>
                 </table>
             </div>
