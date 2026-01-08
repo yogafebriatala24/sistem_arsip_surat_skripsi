@@ -42,7 +42,7 @@
                         <div class="mb-3">
                             <label class="form-label">Tanggal Surat <span class="text-danger">*</span></label>
                             <input type="text" name="tanggal_surat" class="form-control datepicker @error('tanggal_surat') is-invalid @enderror" value="{{ old('tanggal_surat', $arsip->tanggal_surat) }}" autocomplete="off">
-                            
+
                             {{-- pesan error untuk tanggal surat --}}
                             @error('tanggal_surat')
                                 <div class="invalid-feedback">
@@ -50,6 +50,13 @@
                                 </div>
                             @enderror
                         </div>
+
+                        @if($arsip->created_at->timestamp != $arsip->updated_at->timestamp)
+                        <div class="mb-3">
+                            <label class="form-label">Tanggal Diubah</label>
+                            <input type="text" class="form-control" value="{{ \Carbon\Carbon::parse($arsip->updated_at)->translatedFormat('j F Y H:i') }}" readonly>
+                        </div>
+                        @endif
 
                         <div class="mb-3">
                             <label class="form-label">Kategori Surat <span class="text-danger">*</span></label>
@@ -81,9 +88,12 @@
                             
                             {{-- tampilkan file --}}
                             <div class="mt-2">
-                                <a href="{{ route('arsip.show', $arsip->id) }}">
-                                    <i class="ti ti-file-text icon-file text-warning fs-1"></i>
-                                </a>
+                                @if($arsip->dokumen_elektronik)
+                                    <a href="{{ route('arsip.preview', $arsip->id) }}" target="_blank">
+                                        <i class="ti ti-file-text icon-file text-warning fs-1"></i>
+                                        <small>Lihat File Saat Ini</small>
+                                    </a>
+                                @endif
                             </div>
 
                             <div class="form-text text-primary mt-2 mb-0">
