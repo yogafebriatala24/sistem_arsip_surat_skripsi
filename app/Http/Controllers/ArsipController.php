@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\Arsip;
 use App\Models\Kategori;
 use Illuminate\Http\RedirectResponse;
-use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
